@@ -38,8 +38,8 @@ jobs:
       - name: Adjust Android SDK and Suppress Warnings
         run: |
           sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 34/' android/app/build.gradle
-          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
-          sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 34/' node_modules/@voximplant/react-native-foreground-service/android/build.gradle
+          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties    
+          sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 34/' node_modules/@voximplant/react-native-foreground-service/android/build.gradle
 
       - name: Build Android APK
         run: |
