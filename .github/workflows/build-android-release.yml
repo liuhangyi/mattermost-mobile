@@ -38,13 +38,16 @@ jobs:
       - name: Adjust Android SDK and Suppress Warnings
         run: |
           sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 34/' android/app/build.gradle
-          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties    
+          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
           sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 34/' node_modules/@voximplant/react-native-foreground-service/android/build.gradle
+          echo "kotlin.compiler.execution.strategy=in-process" >> android/gradle.properties
+          echo "kotlin.js.compiler.nowarn=true" >> android/gradle.properties
+          echo "kotlin.incremental=false" >> android/gradle.properties
 
       - name: Build Android APK
         run: |
           cd android
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease -x compileReleaseKotlin
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
