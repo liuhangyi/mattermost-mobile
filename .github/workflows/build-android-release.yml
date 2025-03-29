@@ -35,6 +35,11 @@ jobs:
           npm install --ignore-scripts
           cd android && ./gradlew clean
 
+      - name: Adjust Android SDK and Suppress Warnings
+        run: |
+          sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 34/' android/app/build.gradle
+          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
+
       - name: Build Android APK
         run: |
           cd android
