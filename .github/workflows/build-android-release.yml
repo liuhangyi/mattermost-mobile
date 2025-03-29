@@ -2,6 +2,7 @@
 name: build-android-release
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - build-release-[0-9]+
