@@ -1,4 +1,4 @@
-name: simple-android-build
+name: build-android-test-apk
 
 on:
   workflow_dispatch:
@@ -8,49 +8,27 @@ env:
   TERM: xterm
 
 jobs:
-  build-android:
+  build-android-apk:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout repository
+      - name: ci/checkout-repo
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Configure Git
-        run: |
-          git config --global user.email "ci@example.com"
-          git config --global user.name "CI"
-
-      - name: Install dependencies (skip solidarity)
-        run: |
-          npm install --ignore-scripts
-          cd android && ./gradlew clean
-
-      - name: Adjust Android SDK and Suppress Warnings
-        run: |
-          sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 34/' android/app/build.gradle
-          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
-          sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 34/' node_modules/@voximplant/react-native-foreground-service/android/build.gradle
-          echo "kotlin.compiler.execution.strategy=in-process" >> android/gradle.properties
-          echo "kotlin.js.compiler.nowarn=true" >> android/gradle.properties
-          echo "kotlin.incremental=false" >> android/gradle.properties
+      - name: ci/prepare-android-build
+        uses: ./.github/actions/prepare-android-build
+        env:
+          STORE_FILE: "${{ secrets.MM_MOBILE_STORE_FILE }}"
+          STORE_ALIAS: "${{ secrets.MM_MOBILE_STORE_ALIAS }}"
+          STORE_PASSWORD: "${{ secrets.MM_MOBILE_STORE_PASSWORD }}"
+          MATTERMOST_BUILD_GH_TOKEN: "${{ secrets.MATTERMOST_BUILD_GH_TOKEN }}"
 
       - name: Build Android APK
         run: |
-          cd android
-          ./gradlew assembleRelease -x compileReleaseKotlin
+          bundle exec fastlane android build --env android.release
+        working-directory: ./fastlane
 
-      - name: Upload APK Artifact
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-release-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          name: android-test-build-${{ github.run_id }}
+          path: "*.apk"
