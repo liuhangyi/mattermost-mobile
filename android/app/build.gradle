@@ -261,5 +261,3 @@ tasks.register('copyDownloadableDepsToLibs', Copy) {
     from configurations.implementation
     into 'libs'
 }
-
-apply plugin: 'com.google.gms.google-services'
