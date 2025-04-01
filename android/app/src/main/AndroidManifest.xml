@@ -29,6 +29,13 @@
 
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
+    <meta-data
+            android:name="JPUSH_CHANNEL"
+            android:value="${JPUSH_CHANNEL}" />
+    <meta-data
+            android:name="JPUSH_APPKEY"
+            android:value="${JPUSH_APPKEY}" />
+
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />

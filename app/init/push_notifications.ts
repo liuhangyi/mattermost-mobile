@@ -1,19 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import RNUtils from '@mattermost/rnutils/src';
-import {AppState, DeviceEventEmitter, Platform, type EmitterSubscription} from 'react-native';
-import {
-    Notification,
-    NotificationAction,
-    NotificationBackgroundFetchResult,
-    NotificationCategory,
-    type NotificationCompletion,
-    Notifications,
-    type NotificationTextInput,
-    type Registered,
-    type RegistrationError,
-} from 'react-native-notifications';
+import JPush from 'jpush-react-native'; // 使用 JPush 模块
+import {DeviceEventEmitter, Platform} from 'react-native';
 import {requestNotifications} from 'react-native-permissions';
 
 import {storeDeviceToken} from '@actions/app/global';
@@ -23,7 +12,6 @@ import {backgroundNotification, openNotification} from '@actions/remote/notifica
 import {isCallsStartedMessage} from '@calls/utils';
 import {Device, Events, Navigation, PushNotification, Screens} from '@constants';
 import DatabaseManager from '@database/manager';
-import {DEFAULT_LOCALE, getLocalizedMessage, t} from '@i18n';
 import {getServerDisplayName} from '@queries/app/servers';
 import {getCurrentChannelId} from '@queries/servers/system';
 import {getIsCRTEnabled, getThreadById} from '@queries/servers/thread';
@@ -31,66 +19,105 @@ import {showOverlay} from '@screens/navigation';
 import EphemeralStore from '@store/ephemeral_store';
 import NavigationStore from '@store/navigation_store';
 import {isBetaApp} from '@utils/general';
-import {isMainActivity, isTablet} from '@utils/helpers';
+import {isTablet} from '@utils/helpers';
 import {logDebug, logInfo} from '@utils/log';
 import {convertToNotificationData} from '@utils/notification';
 
 class PushNotifications {
     configured = false;
-    subscriptions?: EmitterSubscription[];
+    subscriptions = [];
 
-    init(register: boolean) {
-        this.subscriptions?.forEach((v) => v.remove());
-        this.subscriptions = [
-            Notifications.events().registerNotificationOpened(this.onNotificationOpened),
-            Notifications.events().registerRemoteNotificationsRegistered(this.onRemoteNotificationsRegistered),
-            Notifications.events().registerNotificationReceivedBackground(this.onNotificationReceivedBackground),
-            Notifications.events().registerNotificationReceivedForeground(this.onNotificationReceivedForeground),
-            Notifications.events().registerRemoteNotificationsRegistrationFailed(this.NotificationsRegistrationFailed),
-            Notifications.events().registerRemoteNotificationsRegistrationDenied(this.onRemoteNotificationsRegistrationDenied),
-        ];
+    /**
+     * 初始化推送服务，添加 JPush 事件监听器
+     * @param {boolean} register - 是否执行权限注册（iOS 需要请求通知权限）
+     */
+    init(register) {
+        // 移除之前添加的监听
+        this.subscriptions.forEach((sub) => {
+            if (sub && sub.remove) {
+                sub.remove();
+            }
+        });
+        this.subscriptions = [];
 
+        // 初始化 JPush（注意：参数请根据实际情况调整）
+        JPush.init({appKey: 'c336f3ea4ca4f63a92b8728c', channel: 'dev', production: 1});
+
+        // 添加连接状态监听
+        const connectListener = () => {
+            // 获取注册 ID，并存储设备 token（Android 和 iOS 均可）
+            JPush.getRegistrationID((registrationID) => {
+                if (!this.configured) {
+                    this.configured = true;
+                    let prefix;
+                    if (Platform.OS === 'ios') {
+                        prefix = Device.PUSH_NOTIFY_APPLE_REACT_NATIVE;
+                        if (isBetaApp) {
+                            prefix = `${prefix}beta`;
+                        }
+                    } else {
+                        prefix = Device.PUSH_NOTIFY_ANDROID_REACT_NATIVE + '_jpush';
+                    }
+                    const token = `${prefix}-v2:${registrationID}`;
+                    storeDeviceToken(token);
+                    logDebug('Notification token registered', token);
+                    this.requestNotificationReplyPermissions();
+                }
+            });
+        };
+        JPush.addConnectEventListener(connectListener);
+        const notificationListener = (result) => {
+            const notification = convertToNotificationData(result, false);
+
+            // 当用户点击通知时标记为用户交互
+            notification.userInteraction = true;
+            this.processNotification(notification);
+        };
+        JPush.addNotificationListener(notificationListener);
+        const customMessageListener = (result) => {
+            const notification = convertToNotificationData(result, false);
+            this.processNotification(notification);
+        };
+        JPush.addCustomMessageListener(customMessageListener);
+
+        // 添加应用内消息监听
+        // 添加 tag/alias 事件监听
         if (register) {
             this.registerIfNeeded();
         }
     }
 
     async registerIfNeeded() {
-        const isRegistered = await Notifications.isRegisteredForRemoteNotifications();
-        if (!isRegistered) {
+        if (Platform.OS === 'ios') {
             await requestNotifications(['alert', 'sound', 'badge']);
         }
-        Notifications.registerRemoteNotifications();
+
+        // 对于 JPush，初始化时会自动注册，无需额外调用
     }
 
+    /**
+     * 回复功能（iOS 下 react-native-notifications 需要设置，但 JPush 不要求此配置）
+     */
     createReplyCategory = () => {
-        const replyTitle = getLocalizedMessage(DEFAULT_LOCALE, t('mobile.push_notification_reply.title'));
-        const replyButton = getLocalizedMessage(DEFAULT_LOCALE, t('mobile.push_notification_reply.button'));
-        const replyPlaceholder = getLocalizedMessage(DEFAULT_LOCALE, t('mobile.push_notification_reply.placeholder'));
-        const replyTextInput: NotificationTextInput = {buttonTitle: replyButton, placeholder: replyPlaceholder};
-        const replyAction = new NotificationAction(PushNotification.REPLY_ACTION, 'background', replyTitle, true, replyTextInput);
-        return new NotificationCategory(PushNotification.CATEGORY, [replyAction]);
+        // 可根据需要实现自定义回复逻辑，目前不做处理
+        return null;
     };
 
-    getServerUrlFromNotification = async (notification: NotificationWithData) => {
+    getServerUrlFromNotification = async (notification) => {
         const {payload} = notification;
-
         if (!payload?.channel_id && (!payload?.server_url || !payload.server_id)) {
             return payload?.server_url;
         }
-
         let serverUrl = payload.server_url;
         if (!serverUrl && payload.server_id) {
             serverUrl = await DatabaseManager.getServerUrlFromIdentifier(payload.server_id);
         }
-
         return serverUrl;
     };
 
-    handleClearNotification = async (notification: NotificationWithData) => {
+    handleClearNotification = async (notification) => {
         const {payload} = notification;
         const serverUrl = await this.getServerUrlFromNotification(notification);
-
         if (serverUrl && payload?.channel_id) {
             const database = DatabaseManager.serverDatabases[serverUrl]?.database;
             if (database) {
@@ -98,7 +125,7 @@ class PushNotifications {
                 if (isCRTEnabled && payload.root_id) {
                     const thread = await getThreadById(database, payload.root_id);
                     if (thread?.isFollowing) {
-                        const data: Partial<ThreadWithViewedAt> = {
+                        const data = {
                             unread_mentions: 0,
                             unread_replies: 0,
                             last_viewed_at: Date.now(),
@@ -112,14 +139,11 @@ class PushNotifications {
         }
     };
 
-    handleInAppNotification = async (serverUrl: string, notification: NotificationWithData) => {
+    handleInAppNotification = async (serverUrl, notification) => {
         const {payload} = notification;
-
-        // Do not show overlay if this is a call-started message (the call_notification will alert the user)
         if (isCallsStartedMessage(payload)) {
             return;
         }
-
         const database = DatabaseManager.serverDatabases[serverUrl]?.database;
         if (database) {
             const isTabletDevice = isTablet();
@@ -130,57 +154,37 @@ class PushNotifications {
             if (Object.keys(DatabaseManager.serverDatabases).length > 1) {
                 serverName = displayName;
             }
-
             const isThreadNotification = Boolean(payload?.root_id);
-
             const isSameChannelNotification = payload?.channel_id === channelId;
             const isSameThreadNotification = isThreadNotification && payload?.root_id === EphemeralStore.getCurrentThreadId();
-
             let isInChannelScreen = NavigationStore.getVisibleScreen() === Screens.CHANNEL;
             if (isTabletDevice) {
                 isInChannelScreen = NavigationStore.getVisibleTab() === Screens.HOME;
             }
             const isInThreadScreen = NavigationStore.getVisibleScreen() === Screens.THREAD;
-
-            // Conditions:
-            // 1. If not in channel screen or thread screen, show the notification
             const condition1 = !isInChannelScreen && !isInThreadScreen;
-
-            // 2. If is in channel screen,
-            //      - Show notification of other channels
-            //        or
-            //      - Show notification if CRT is enabled and it's a thread notification (doesn't matter if it's the same channel)
             const condition2 = isInChannelScreen && (!isSameChannelNotification || (isCRTEnabled && isThreadNotification));
-
-            // 3. If is in thread screen,
-            //      - Show the notification if it doesn't belong to the thread
             const condition3 = isInThreadScreen && !isSameThreadNotification;
-
             if (condition1 || condition2 || condition3) {
-                // Dismiss the screen if it's already visible or else it blocks the navigation
                 DeviceEventEmitter.emit(Navigation.NAVIGATION_SHOW_OVERLAY);
-
                 const screen = Screens.IN_APP_NOTIFICATION;
                 const passProps = {
                     notification,
                     serverName,
                     serverUrl,
                 };
-
                 showOverlay(screen, passProps);
             }
         }
     };
 
-    handleMessageNotification = async (notification: NotificationWithData) => {
+    handleMessageNotification = async (notification) => {
         const {payload, foreground, userInteraction} = notification;
         const serverUrl = await this.getServerUrlFromNotification(notification);
         if (serverUrl) {
             if (foreground) {
-                // Move this to a local action
                 this.handleInAppNotification(serverUrl, notification);
             } else if (userInteraction && !payload?.userInfo?.local) {
-                // Handle notification tapped
                 openNotification(serverUrl, notification);
             } else {
                 backgroundNotification(serverUrl, notification);
@@ -188,11 +192,9 @@ class PushNotifications {
         }
     };
 
-    handleSessionNotification = async (notification: NotificationWithData) => {
+    handleSessionNotification = async (notification) => {
         logInfo('Session expired notification');
-
         const serverUrl = await this.getServerUrlFromNotification(notification);
-
         if (serverUrl) {
             if (notification.userInteraction) {
                 DeviceEventEmitter.emit(Events.SESSION_EXPIRED, serverUrl);
@@ -202,9 +204,8 @@ class PushNotifications {
         }
     };
 
-    processNotification = async (notification: NotificationWithData) => {
+    processNotification = async (notification) => {
         const {payload} = notification;
-
         if (payload) {
             switch (payload.type) {
                 case PushNotification.NOTIFICATION_TYPE.CLEAR:
@@ -216,120 +217,18 @@ class PushNotifications {
                 case PushNotification.NOTIFICATION_TYPE.SESSION:
                     this.handleSessionNotification(notification);
                     break;
+                default:
+                    break;
             }
         }
     };
 
-    localNotification = (notification: Notification) => {
-        Notifications.postLocalNotification(notification);
-    };
-
-    // This triggers when a notification is tapped and the app was in the background (iOS)
-    onNotificationOpened = (incoming: Notification, completion: () => void) => {
-        const notification = convertToNotificationData(incoming, false);
-        notification.userInteraction = true;
-
-        this.processNotification(notification);
-        completion();
-    };
-
-    // This triggers when the app was in the background (iOS)
-    onNotificationReceivedBackground = async (incoming: Notification, completion: (response: NotificationBackgroundFetchResult) => void) => {
-        if (incoming.payload.verified === 'false') {
-            logDebug('not handling background notification because it was not verified, ackId=', incoming.payload.ackId);
-            return;
-        }
-        const notification = convertToNotificationData(incoming, false);
-        this.processNotification(notification);
-
-        completion(NotificationBackgroundFetchResult.NEW_DATA);
-    };
-
-    // This triggers when the app was in the foreground (Android and iOS)
-    // Also triggers when the app was in the background (Android)
-    onNotificationReceivedForeground = (incoming: Notification, completion: (response: NotificationCompletion) => void) => {
-        if (incoming.payload.verified === 'false') {
-            logDebug('not handling foreground notification because it was not verified, ackId=', incoming.payload.ackId);
-            return;
-        }
-        const notification = convertToNotificationData(incoming, false);
-        if (AppState.currentState !== 'inactive') {
-            notification.foreground = AppState.currentState === 'active' && isMainActivity();
-
-            this.processNotification(notification);
-        }
-
-        // Always play a sound, except when this is a foreground notification about a call
-        const sound = !(notification.foreground && isCallsStartedMessage(notification.payload));
-        completion({alert: false, sound, badge: true});
-    };
-
-    onRemoteNotificationsRegistered = async (event: Registered) => {
-        if (!this.configured) {
-            this.configured = true;
-            const {deviceToken} = event;
-            let prefix;
-
-            if (Platform.OS === 'ios') {
-                prefix = Device.PUSH_NOTIFY_APPLE_REACT_NATIVE;
-                if (isBetaApp) {
-                    prefix = `${prefix}beta`;
-                }
-            } else {
-                prefix = Device.PUSH_NOTIFY_ANDROID_REACT_NATIVE;
-            }
-
-            const token = `${prefix}-v2:${deviceToken}`;
-            storeDeviceToken(token);
-            logDebug('Notification token registered', token);
-
-            // Store the device token in the default database
-            this.requestNotificationReplyPermissions();
-        }
-        return null;
-    };
-
-    onRemoteNotificationsRegistrationDenied = () => {
-        logDebug('Notification registration denied');
-    };
-
-    NotificationsRegistrationFailed = (event: RegistrationError) => {
-        logDebug('Notification registration failed', event);
-    };
-
-    removeChannelNotifications = async (serverUrl: string, channelId: string) => {
-        RNUtils.removeChannelNotifications(serverUrl, channelId);
-    };
-
-    removeServerNotifications = (serverUrl: string) => {
-        RNUtils.removeServerNotifications(serverUrl);
-    };
-
-    removeThreadNotifications = async (serverUrl: string, threadId: string) => {
-        RNUtils.removeThreadNotifications(serverUrl, threadId);
+    cancelScheduleNotification = (notificationId) => {
+        JPush.removeLocalNotification(notificationId);
     };
 
     requestNotificationReplyPermissions = () => {
-        if (Platform.OS === 'ios') {
-            const replyCategory = this.createReplyCategory();
-            Notifications.setCategories([replyCategory]);
-        }
-    };
-
-    scheduleNotification = (notification: Notification) => {
-        if (notification.fireDate) {
-            if (Platform.OS === 'ios') {
-                notification.fireDate = new Date(notification.fireDate).toISOString();
-            }
-
-            return Notifications.postLocalNotification(notification);
-        }
-
-        return 0;
-    };
-
-    cancelScheduleNotification = (notificationId: number) => {
-        Notifications.cancelLocalNotification(notificationId);
+        // 极光推送不需要设置类似 react-native-notifications 中的回复权限
     };
 }
 
