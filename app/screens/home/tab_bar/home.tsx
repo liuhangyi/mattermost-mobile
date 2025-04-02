@@ -1,10 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import RNUtils from '@mattermost/rnutils/src';
 import React, {useEffect, useState} from 'react';
 import {DeviceEventEmitter, Platform, StyleSheet, View} from 'react-native';
-import {Notifications} from 'react-native-notifications';
 
 import Badge from '@components/badge';
 import CompassIcon from '@components/compass_icon';
@@ -13,7 +11,6 @@ import {subscribeAllServers} from '@database/subscription/servers';
 import {subscribeUnreadAndMentionsByServer, type UnreadObserverArgs} from '@database/subscription/unreads';
 import {useAppState} from '@hooks/device';
 import useDidUpdate from '@hooks/did_update';
-import {logDebug} from '@utils/log';
 import {changeOpacity} from '@utils/theme';
 
 import type ServersModel from '@typings/database/models/app/servers';
@@ -57,15 +54,15 @@ const getTotalMentionsAndUnread = () => {
 const updateBadge = () => {
     if (Platform.OS === 'ios') {
         const {mentions} = getTotalMentionsAndUnread();
-        RNUtils.getDeliveredNotifications().then((delivered) => {
-            if (mentions === 0 && delivered.length > 0) {
-                logDebug('Not updating badge count, since we have no mentions in the database, and the number of notifications in the notification center is', delivered.length);
-                return;
-            }
-
-            logDebug('Setting the badge count based on database values to', mentions);
-            Notifications.ios.setBadgeCount(mentions);
-        });
+        // RNUtils.getDeliveredNotifications().then((delivered) => {
+        //     if (mentions === 0 && delivered.length > 0) {
+        //         logDebug('Not updating badge count, since we have no mentions in the database, and the number of notifications in the notification center is', delivered.length);
+        //         return;
+        //     }
+        //
+        //     logDebug('Setting the badge count based on database values to', mentions);
+        //     Notifications.ios.setBadgeCount(mentions);
+        // });
     }
 };
 

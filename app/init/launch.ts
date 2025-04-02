@@ -2,8 +2,7 @@
 // See LICENSE.txt for license information.
 
 import Emm from '@mattermost/react-native-emm';
-import {Alert, AppState, DeviceEventEmitter, Linking, Platform} from 'react-native';
-import {Notifications} from 'react-native-notifications';
+import {Alert, DeviceEventEmitter, Linking} from 'react-native';
 
 import {removePost} from '@actions/local/post';
 import {switchToChannelById} from '@actions/remote/channel';
@@ -25,12 +24,11 @@ import {resetToHome, resetToSelectServer, resetToTeams, resetToOnboarding} from 
 import EphemeralStore from '@store/ephemeral_store';
 import {getLaunchPropsFromDeepLink} from '@utils/deep_link';
 import {logInfo} from '@utils/log';
-import {convertToNotificationData} from '@utils/notification';
 import {removeProtocol} from '@utils/url';
 
 import type {DeepLinkWithData, LaunchProps} from '@typings/launch';
 
-const initialNotificationTypes = [PushNotification.NOTIFICATION_TYPE.MESSAGE, PushNotification.NOTIFICATION_TYPE.SESSION];
+//const initialNotificationTypes = [PushNotification.NOTIFICATION_TYPE.MESSAGE, PushNotification.NOTIFICATION_TYPE.SESSION];
 
 export const initialLaunch = async () => {
     const deepLinkUrl = await Linking.getInitialURL();
@@ -38,25 +36,25 @@ export const initialLaunch = async () => {
         return launchAppFromDeepLink(deepLinkUrl, true);
     }
 
-    const notification = await Notifications.getInitialNotification();
-    let tapped = Platform.select({android: true, ios: false})!;
-    if (Platform.OS === 'ios' && notification) {
-        // when a notification is received on iOS, getInitialNotification, will return the notification
-        // as the app will initialized cause we are using background fetch,
-        // that does not necessarily mean that the app was opened cause of the notification was tapped.
-        // Here we are going to dettermine if the notification still exists in NotificationCenter to determine if
-        // the app was opened because of a tap or cause of the background fetch init
-        const delivered = await Notifications.ios.getDeliveredNotifications();
-        tapped = delivered.find((d) => (d as unknown as NotificationData).ack_id === notification?.payload.ack_id) == null;
-    }
-    if (initialNotificationTypes.includes(notification?.payload?.type) && tapped) {
-        const notificationData = convertToNotificationData(notification!);
-        EphemeralStore.setProcessingNotification(notificationData.identifier);
-        return launchAppFromNotification(notificationData, true);
-    }
-
-    const coldStart = notification ? (tapped || AppState.currentState === 'active') : true;
-    return launchApp({launchType: Launch.Normal, coldStart});
+    // const notification = await Notifications.getInitialNotification();
+    // let tapped = Platform.select({android: true, ios: false})!;
+    // if (Platform.OS === 'ios' && notification) {
+    //     // when a notification is received on iOS, getInitialNotification, will return the notification
+    //     // as the app will initialized cause we are using background fetch,
+    //     // that does not necessarily mean that the app was opened cause of the notification was tapped.
+    //     // Here we are going to dettermine if the notification still exists in NotificationCenter to determine if
+    //     // the app was opened because of a tap or cause of the background fetch init
+    //     const delivered = await Notifications.ios.getDeliveredNotifications();
+    //     tapped = delivered.find((d) => (d as unknown as NotificationData).ack_id === notification?.payload.ack_id) == null;
+    // }
+    // if (initialNotificationTypes.includes(notification?.payload?.type) && tapped) {
+    //     const notificationData = convertToNotificationData(notification!);
+    //     EphemeralStore.setProcessingNotification(notificationData.identifier);
+    //     return launchAppFromNotification(notificationData, true);
+    // }
+    //
+    //const coldStart = notification ? (tapped || AppState.currentState === 'active') : true;
+    return launchApp({launchType: Launch.Normal});
 };
 
 const launchAppFromDeepLink = async (deepLinkUrl: string, coldStart = false) => {
