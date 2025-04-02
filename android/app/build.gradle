@@ -216,7 +216,7 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.5.2'
     androidTestImplementation 'com.wix:detox:20.26.2'
 
-    implementation project(':reactnativenotifications')
+    // implementation project(':reactnativenotifications')
     implementation project(':watermelondb-jsi')
 
     api('io.jsonwebtoken:jjwt-api:0.12.5')

@@ -23,19 +23,19 @@ import com.mattermost.turbolog.ConfigureOptions
 import com.nozbe.watermelondb.jsi.JSIInstaller
 import com.nozbe.watermelondb.jsi.WatermelonDBJSIPackage
 import com.reactnativenavigation.NavigationApplication
-import com.wix.reactnativenotifications.RNNotificationsPackage
-import com.wix.reactnativenotifications.core.AppLaunchHelper
-import com.wix.reactnativenotifications.core.AppLifecycleFacade
-import com.wix.reactnativenotifications.core.JsIOHelper
-import com.wix.reactnativenotifications.core.notification.INotificationsApplication
-import com.wix.reactnativenotifications.core.notification.IPushNotification
+//import com.wix.reactnativenotifications.RNNotificationsPackage
+//import com.wix.reactnativenotifications.core.AppLaunchHelper
+//import com.wix.reactnativenotifications.core.AppLifecycleFacade
+//import com.wix.reactnativenotifications.core.JsIOHelper
+//import com.wix.reactnativenotifications.core.notification.INotificationsApplication
+//import com.wix.reactnativenotifications.core.notification.IPushNotification
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
 import expo.modules.image.okhttp.ExpoImageOkHttpClientGlideModule
 import java.io.File
 import cn.jiguang.plugins.push.JPushModule
 
-class MainApplication : NavigationApplication(), INotificationsApplication {
+class MainApplication : NavigationApplication() {
     private var listenerAdded = false
 
     override val reactNativeHost: ReactNativeHost =
@@ -45,7 +45,7 @@ class MainApplication : NavigationApplication(), INotificationsApplication {
                     PackageList(this).packages.apply {
                         // Packages that cannot be autolinked yet can be added manually here, for example:
                         // add(MyReactNativePackage())
-                        add(RNNotificationsPackage(this@MainApplication))
+                        //add(RNNotificationsPackage(this@MainApplication))
                         add(WatermelonDBJSIPackage())
                     }
 
@@ -94,21 +94,6 @@ class MainApplication : NavigationApplication(), INotificationsApplication {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         ApplicationLifecycleDispatcher.onConfigurationChanged(this, newConfig)
-    }
-
-    override fun getPushNotification(
-        context: Context?,
-        bundle: Bundle?,
-        defaultFacade: AppLifecycleFacade?,
-        defaultAppLaunchHelper: AppLaunchHelper?
-    ): IPushNotification {
-        return CustomPushNotification(
-            context!!,
-            bundle!!,
-            defaultFacade!!,
-            defaultAppLaunchHelper!!,
-            JsIOHelper()
-        )
     }
 
     @SuppressLint("VisibleForTests")

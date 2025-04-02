@@ -7,7 +7,7 @@ import android.os.Bundle;
 
 import com.mattermost.rnutils.helpers.NotificationHelper;
 import com.mattermost.turbolog.TurboLog;
-import com.wix.reactnativenotifications.core.NotificationIntentAdapter;
+//import com.wix.reactnativenotifications.core.NotificationIntentAdapter;
 
 public class NotificationDismissService extends IntentService {
     public NotificationDismissService() {
@@ -17,9 +17,9 @@ public class NotificationDismissService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         final Context context = getApplicationContext();
-        final Bundle bundle = NotificationIntentAdapter.extractPendingNotificationDataFromIntent(intent);
-
-        NotificationHelper.INSTANCE.dismissNotification(context, bundle);
+//         final Bundle bundle = NotificationIntentAdapter.extractPendingNotificationDataFromIntent(intent);
+//
+//         NotificationHelper.INSTANCE.dismissNotification(context, bundle);
         TurboLog.Companion.i("ReactNative", "Dismiss notification");
     }
 }
