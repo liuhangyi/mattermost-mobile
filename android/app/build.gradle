@@ -210,7 +210,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation "com.google.firebase:firebase-messaging:$firebaseVersion"
+    // implementation "com.google.firebase:firebase-messaging:$firebaseVersion"
     androidTestImplementation('com.wix:detox:+')
     androidTestImplementation 'androidx.test:core:1.6.0'
     androidTestImplementation 'androidx.test:runner:1.5.2'
