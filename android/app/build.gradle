@@ -119,7 +119,7 @@ android {
         testBuildType System.getProperty('testBuildType', 'debug')
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
          manifestPlaceholders = [
-                                  JPUSH_APPKEY: "c336f3ea4ca4f63a92b8728c",         //在此替换你的APPKey
+                                  JPUSH_APPKEY: "872a3d3fc0e3d3d47736efed",         //在此替换你的APPKey
                                   JPUSH_CHANNEL: "dev"        //在此替换你的channel
                           ]
     }

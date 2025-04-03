@@ -42,7 +42,7 @@ class PushNotifications {
 
     init(register: boolean) {
         // 初始化 JPush（注意：参数请根据实际情况调整）
-        JPush.init({appKey: 'c336f3ea4ca4f63a92b8728c', channel: 'dev', production: 1});
+        JPush.init({appKey: '872a3d3fc0e3d3d47736efed', channel: 'dev', production: 1});
 
         // 添加连接状态监听
         const connectListener = () => {
