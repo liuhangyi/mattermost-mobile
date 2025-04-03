@@ -58,7 +58,7 @@ class PushNotifications {
                     } else {
                         prefix = Device.PUSH_NOTIFY_ANDROID_REACT_NATIVE + '_jpush';
                     }
-                    const token = `${prefix}-v2:${registrationID}`;
+                    const token = `${prefix}-v2:${registrationID.registerID}`;
                     storeDeviceToken(token);
                     logDebug('Notification token registered', token);
                     this.requestNotificationReplyPermissions();
