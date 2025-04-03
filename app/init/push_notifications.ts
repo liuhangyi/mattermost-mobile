@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import RNUtils from '@mattermost/rnutils/src';
+import JPush from 'jpush-react-native'; // 使用 JPush 模块
 import {AppState, DeviceEventEmitter, Platform, type EmitterSubscription} from 'react-native';
 import {
     Notification,
@@ -40,6 +41,32 @@ class PushNotifications {
     subscriptions?: EmitterSubscription[];
 
     init(register: boolean) {
+        // 初始化 JPush（注意：参数请根据实际情况调整）
+        JPush.init({appKey: 'c336f3ea4ca4f63a92b8728c', channel: 'dev', production: 1});
+
+        // 添加连接状态监听
+        const connectListener = () => {
+            // 获取注册 ID，并存储设备 token（Android 和 iOS 均可）
+            JPush.getRegistrationID((registrationID) => {
+                if (!this.configured) {
+                    this.configured = true;
+                    let prefix;
+                    if (Platform.OS === 'ios') {
+                        prefix = Device.PUSH_NOTIFY_APPLE_REACT_NATIVE;
+                        if (isBetaApp) {
+                            prefix = `${prefix}beta`;
+                        }
+                    } else {
+                        prefix = Device.PUSH_NOTIFY_ANDROID_REACT_NATIVE + '_jpush';
+                    }
+                    const token = `${prefix}-v2:${registrationID.registerID}`;
+                    storeDeviceToken(token);
+                    logDebug('Notification token registered', token);
+                    this.requestNotificationReplyPermissions();
+                }
+            });
+        };
+        JPush.addConnectEventListener(connectListener);
         this.subscriptions?.forEach((v) => v.remove());
         this.subscriptions = [
             Notifications.events().registerNotificationOpened(this.onNotificationOpened),
@@ -265,27 +292,27 @@ class PushNotifications {
     };
 
     onRemoteNotificationsRegistered = async (event: Registered) => {
-        if (!this.configured) {
-            this.configured = true;
-            const {deviceToken} = event;
-            let prefix;
-
-            if (Platform.OS === 'ios') {
-                prefix = Device.PUSH_NOTIFY_APPLE_REACT_NATIVE;
-                if (isBetaApp) {
-                    prefix = `${prefix}beta`;
-                }
-            } else {
-                prefix = Device.PUSH_NOTIFY_ANDROID_REACT_NATIVE;
-            }
-
-            const token = `${prefix}-v2:${deviceToken}`;
-            storeDeviceToken(token);
-            logDebug('Notification token registered', token);
-
-            // Store the device token in the default database
-            this.requestNotificationReplyPermissions();
-        }
+        // if (!this.configured) {
+        //     this.configured = true;
+        //     const {deviceToken} = event;
+        //     let prefix;
+        //
+        //     if (Platform.OS === 'ios') {
+        //         prefix = Device.PUSH_NOTIFY_APPLE_REACT_NATIVE;
+        //         if (isBetaApp) {
+        //             prefix = `${prefix}beta`;
+        //         }
+        //     } else {
+        //         prefix = Device.PUSH_NOTIFY_ANDROID_REACT_NATIVE;
+        //     }
+        //
+        //     const token = `${prefix}-v2:${deviceToken}`;
+        //     storeDeviceToken(token);
+        //     logDebug('Notification token registered', token);
+        //
+        //     // Store the device token in the default database
+        //     this.requestNotificationReplyPermissions();
+        // }
         return null;
     };
 

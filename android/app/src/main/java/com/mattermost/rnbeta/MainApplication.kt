@@ -33,6 +33,7 @@ import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
 import expo.modules.image.okhttp.ExpoImageOkHttpClientGlideModule
 import java.io.File
+import cn.jiguang.plugins.push.JPushModule
 
 class MainApplication : NavigationApplication(), INotificationsApplication {
     private var listenerAdded = false
@@ -85,6 +86,9 @@ class MainApplication : NavigationApplication(), INotificationsApplication {
             load(bridgelessEnabled = false)
         }
         ApplicationLifecycleDispatcher.onApplicationCreate(this)
+
+        //调用此方法：点击通知让应用从后台切到前台
+        JPushModule.registerActivityLifecycle(this)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

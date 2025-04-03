@@ -118,6 +118,10 @@ android {
         versionName "2.26.2"
         testBuildType System.getProperty('testBuildType', 'debug')
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+         manifestPlaceholders = [
+                                  JPUSH_APPKEY: "c336f3ea4ca4f63a92b8728c",         //在此替换你的APPKey
+                                  JPUSH_CHANNEL: "dev"        //在此替换你的channel
+                          ]
     }
 
     signingConfigs {
@@ -220,6 +224,9 @@ dependencies {
     runtimeOnly('io.jsonwebtoken:jjwt-orgjson:0.12.5') {
         exclude(group: 'org.json', module: 'json') //provided by Android natively
     }
+
+    implementation project(':jpush-react-native')  // 添加 jpush 依赖
+    implementation project(':jcore-react-native')  // 添加 jcore 依赖
 }
 
 configurations.all {
