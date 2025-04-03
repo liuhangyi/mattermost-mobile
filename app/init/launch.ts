@@ -6,7 +6,7 @@ import {Alert, DeviceEventEmitter, Linking} from 'react-native';
 
 import {removePost} from '@actions/local/post';
 import {switchToChannelById} from '@actions/remote/channel';
-import {appEntry, pushNotificationEntry, upgradeEntry} from '@actions/remote/entry';
+import {appEntry, upgradeEntry} from '@actions/remote/entry';
 import {fetchAndSwitchToThread} from '@actions/remote/thread';
 import LocalConfig from '@assets/config.json';
 import {DeepLink, Events, Launch, PushNotification} from '@constants';
@@ -176,14 +176,14 @@ export const launchToHome = async (props: LaunchProps) => {
             break;
         }
         case Launch.Notification: {
-            const extra = props.extra as NotificationWithData;
-            openPushNotification = Boolean(props.serverUrl && !props.launchError && extra.userInteraction && extra.payload?.channel_id && !extra.payload?.userInfo?.local);
-            if (openPushNotification) {
-                await resetToHome(props);
-                return pushNotificationEntry(props.serverUrl!, extra.payload!, 'Notification');
-            }
-
-            appEntry(props.serverUrl!);
+            // const extra = props.extra as NotificationWithData;
+            // openPushNotification = Boolean(props.serverUrl && !props.launchError && extra.userInteraction && extra.payload?.channel_id && !extra.payload?.userInfo?.local);
+            // if (openPushNotification) {
+            //     await resetToHome(props);
+            //     return pushNotificationEntry(props.serverUrl!, extra.payload!, 'Notification');
+            // }
+            //
+            // appEntry(props.serverUrl!);
             break;
         }
         case Launch.Normal:

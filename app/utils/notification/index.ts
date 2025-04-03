@@ -116,18 +116,18 @@ export const scheduleExpiredNotification = (serverUrl: string, session: Session,
     }
     const title = intl.formatMessage({id: 'mobile.session_expired.title', defaultMessage: 'Session Expired'});
 
-    if (expiresAt) {
-        return PushNotifications.scheduleNotification({
-            fireDate: expiresAt,
-            body,
-            title,
-
-            // @ts-expect-error need to be included in the notification payload
-            ack_id: serverUrl,
-            server_url: serverUrl,
-            type: 'session',
-        });
-    }
+    // if (expiresAt) {
+    //     return PushNotifications.scheduleNotification({
+    //         fireDate: expiresAt,
+    //         body,
+    //         title,
+    //
+    //         // @ts-expect-error need to be included in the notification payload
+    //         ack_id: serverUrl,
+    //         server_url: serverUrl,
+    //         type: 'session',
+    //     });
+    // }
 
     return 0;
 };
