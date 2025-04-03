@@ -1,4 +1,4 @@
-package com.mattermost.rnbeta;
+package com.lhy99.mattermost;
 
 import com.wix.detox.Detox;
 import com.wix.detox.config.DetoxConfig;

@@ -21,7 +21,7 @@ project(':detox').projectDir = new File(rootProject.projectDir, '../detox/node_m
 const updatedManifest = `<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           xmlns:tools="http://schemas.android.com/tools"
-          package="com.mattermost.rnbeta">
+          package="com.lhy99.mattermost">
 
     <application
         android:usesCleartextTraffic="true"

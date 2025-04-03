@@ -1,4 +1,4 @@
-package com.mattermost.rnbeta
+package com.lhy99.mattermost
 
 import android.content.res.Configuration
 import android.os.Bundle

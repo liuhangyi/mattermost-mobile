@@ -1,4 +1,4 @@
-package com.mattermost.rnbeta;
+package com.lhy99.mattermost;
 
 import android.app.Notification;
 import android.app.NotificationManager;
